@@ -1,75 +1,44 @@
 const mongoose = require("mongoose");
+const express = require("express");
+const morgan = require("morgan");
+const { json, urlencoded } = require("body-parser");
+const app = express();
 
-const connect = () => {
-  return mongoose.connect("mongodb://localhost:27017/whatever", {
-    useNewUrlParser: true,
-  });
-};
-
-const studentSchema = new mongoose.Schema(
-  {
-    firstName: {
-      type: String,
-      required: true,
-    },
-    favoriteFood: [{ type: String }],
-    info: {
-      school: {
-        type: String,
-      },
-      choeSize: {
-        type: Number,
-      },
-    },
-    school: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      ref: "school",
-    },
+const noteSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    unique: true,
   },
-  { timestamps: true }
-);
-
-const schoolSchema = new mongoose.Schema({
-  name: String,
-  openSince: Number,
-  students: Number,
-  isGreate: Boolean,
+  bondy: {
+    type: String,
+    minLighth: 10,
+  },
 });
 
-const Student = mongoose.model("student", studentSchema);
-const School = mongoose.model("school", schoolSchema); // Fix the typo here, it should be "school" not "shool"
+const Note = mongoose.model("note", noteSchema);
+
+app.use(morgan("dev"));
+app.use(json());
+app.use(urlencoded({ extended: true }));
+
+app.get("/note", async (req, res) => {
+  const notes = await Note.find({}).exec();
+  res.status(200).json(notes);
+});
+
+app.post("/note", async (req, res) => {
+  const noteToCreate = req.body;
+  const note = await Note.create(noteToCreate);
+  res.status(201).json(note);
+});
+
+const connect = () => {
+  return mongoose.connect("mongodb://localhost:27017/whatever");
+};
 
 connect()
   .then(async () => {
-    const school = await School.create({
-      name: "HTI",
-      openSince: 1850,
-      students: 1000,
-      isGreate: false,
-    });
-    const school2 = await School.create({
-      name: "cic",
-      openSince: 1850,
-      students: 1100,
-      isGreate: true,
-    });
-    const school3 = await School.create({
-      name: "AUC",
-      openSince: 1000,
-      students: 1800,
-      isGreate: true,
-    });
-
-    const match = await School.find({
-      students: { $gt: 1500 },
-    });
-
-    // const student = await Student.create({
-    //   firstName: "deeb",
-    //   school: school._id,
-    // });
-    // const match = await Student.findById(student.id).populate("school").exec();
-    console.log(match);
+    app.listen(5000, () => console.log("server on 5000"));
   })
   .catch((err) => console.log(err));
